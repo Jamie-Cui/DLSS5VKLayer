@@ -491,6 +491,7 @@ QString MainWindow::findProjectDir() const {
         if (!d.cdUp()) break;
     }
     for (const QString& c : candidates) {
+        if (QFile::exists(c + "/dlssnr-helper") && QFile::exists(c + "/meson.build")) return c;
         if (QFile::exists(c + "/build/dlssnr_helper.exe")) return c;
     }
     return QDir::currentPath();

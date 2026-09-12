@@ -144,7 +144,8 @@ detect_install_dir() {
     "/usr/lib/dlssnr" \
     "$bin_dir" \
     "$bin_dir/.."; do
-    if [ -f "$c/helper/dlssnr_helper.exe" ] || [ -f "$c/build/dlssnr_helper.exe" ]; then
+    if [ -f "$c/helper/dlssnr_helper.exe" ] || [ -f "$c/build/dlssnr_helper.exe" ] ||
+       [ -f "$c/build/windows/windows/dlssnr_helper.exe" ]; then
       readlink -f "$c"
       return 0
     fi
@@ -161,6 +162,7 @@ detect_helper_exe() {
   d="$(detect_install_dir)"
   for c in \
     "$d/helper/dlssnr_helper.exe" \
+    "$d/build/windows/windows/dlssnr_helper.exe" \
     "$d/build/dlssnr_helper.exe" \
     "/usr/lib64/dlssnr/helper/dlssnr_helper.exe" \
     "/usr/lib/dlssnr/helper/dlssnr_helper.exe" \
@@ -210,6 +212,8 @@ detect_runner_probe() {
   local d c
   d="$(detect_install_dir)"
   for c in \
+    "$d/build/native/tools/runner_probe" \
+    "$d/build/tools/runner_probe" \
     "$d/build/runner_probe" \
     "$d/runner_probe" \
     "/usr/lib64/dlssnr/bin/runner_probe" \
@@ -227,6 +231,8 @@ detect_shmctl() {
   local d c
   d="$(detect_install_dir)"
   for c in \
+    "$d/build/native/tools/dlssnr-shmctl" \
+    "$d/build/tools/dlssnr-shmctl" \
     "$d/build/dlssnr-shmctl" \
     "$d/bin/dlssnr-shmctl" \
     "$d/dlssnr-shmctl" \

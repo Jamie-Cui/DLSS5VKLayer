@@ -200,13 +200,14 @@ dlssnr-gui
 
 ## Game Usage
 
-Launch a game with the layer enabled:
+With a packaged installation, launch a game with the layer enabled:
 
 ```bash
 VKLayer_DLSS5=1 ./your_native_game
 ```
 
-For Steam:
+For Steam, put this in the game's **Properties -> General -> Launch Options**
+(**Shortcut -> Launch Options** for a non-Steam shortcut):
 
 ```text
 VKLayer_DLSS5=1 %command%
@@ -215,6 +216,43 @@ VKLayer_DLSS5=1 %command%
 The layer is disabled unless `VKLayer_DLSS5=1` is present.
 
 The layer is intended to coexist with the Steam overlay. If a game crashes during Vulkan device creation, make sure you are using `0.2.1-3` or newer.
+
+### Steam with a Local Build
+
+You can run the GUI, helper, and Vulkan layer directly from the build directory without installing
+a package. In **Properties -> Compatibility**, select a custom Proton runner; this setup was tested
+with **GE-Proton11-3**.
+
+For a 64-bit game, place the layer's JSON manifest beside the compiled `.so`. From the repository root,
+for a native build configured in `build/`, run:
+
+```bash
+cp layer_linux/manifest/VK_LAYER_NV_dlssnr.json build/layer_linux/
+```
+
+Then use this Steam launch option (the checkout path shown is a working example):
+
+```text
+VK_ADD_IMPLICIT_LAYER_PATH=/home/jamie/opt/DLSS5VKLayer/build/layer_linux VKLayer_DLSS5=1 %command%
+```
+
+Replace `/home/jamie/opt/DLSS5VKLayer` with your checkout's absolute path. If you built with
+`tools/meson-build.sh`, use `build/native/layer_linux/` in both the copy command and the launch option.
+Quote the path if it contains spaces. The directory must contain both
+`VK_LAYER_NV_dlssnr.json` and `libVkLayer_NV_dlssnr.so`: the path variable tells the Vulkan loader where
+to find the layer, and `VKLayer_DLSS5=1` enables it. Keep the shortcut's target pointing to the game's
+executable or launcher.
+
+Start the GUI from the same build and click **Start helper**. Fully exit the game and its launcher,
+then relaunch through Steam so the new launch options take effect. To check frame delivery:
+
+```bash
+./build/tools/dlssnr-shmctl "/tmp/dlssnr-$UID/shm.bin" status
+```
+
+Use `./build/native/tools/dlssnr-shmctl` for the coordinated build. While playing, `layer_frames` and
+`helper_frames` should increase; `model_up=1` and `layer_composition_up=1` indicate that the model and
+composition are active.
 
 ## Steam / Proton Containers
 
@@ -229,7 +267,8 @@ and then wait forever for a helper that is answering on the other file:
 ```
 
 For that reason the mapping lives in **`/tmp/dlssnr-$UID/`**, which the container bind-mounts from the
-host. Nothing needs to be added to the launch options for this; `VKLayer_DLSS5=1 %command%` is enough.
+host. No extra launch option is needed for this shared-memory path. Use the launch options above
+for your packaged installation or local build.
 
 If you saw the symptom above with an older build, remove the mapping it left behind:
 
@@ -324,10 +363,21 @@ Install build dependencies:
 - `mingw64-gcc-c++` (MinGW headers, libraries, and runtime sysroot for the Clang Windows target)
 - `qt6-qtbase-devel` for the GUI
 - `rpm-build` if you want the RPMs
+- `glibc-static` and `libstdc++-static` for the fully static Linux command-line tools
 - `glibc-devel.i686`, `libstdc++-devel.i686`, `libgcc.i686`, and `libatomic.i686` for the
-  required 32-bit layer
+  required 32-bit layer, plus `libstdc++-static.i686` for its embedded C++ runtime
 
 Vulkan headers are vendored, so no Vulkan devel package is needed.
+
+On Fedora, linker errors saying `cannot find -lc` or `cannot find -lm` while building
+the command-line tools mean the static glibc libraries are missing. Install the static
+runtimes and rerun the build:
+
+```bash
+sudo dnf install glibc-static libstdc++-static
+meson setup --reconfigure build
+ninja -C build
+```
 
 Build everything with Clang:
 
@@ -337,8 +387,9 @@ tools/meson-build.sh
 
 This coordinates native 64-bit Linux, 32-bit Linux, and Windows GNU PE targets. The Windows
 binaries are intended to run under Wine or Proton and do not require a native Windows SDK or
-compiler. Builds are side-effect free; install a package or use the packaging scripts to install
-the Vulkan layer manifest. The Linux command-line tools are fully static, and the layer/GUI embed
+compiler. Builds do not install the Vulkan layer manifest. To run directly from the build directory,
+follow [Steam with a Local Build](#steam-with-a-local-build); packaging is optional.
+The Linux command-line tools are fully static, and the layer/GUI embed
 their C++ runtimes where supported. The Vulkan loader, Qt, graphics, and system C libraries remain
 dynamic system dependencies.
 
